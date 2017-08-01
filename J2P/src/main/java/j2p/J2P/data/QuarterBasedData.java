@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import j2p.J2P.objects.IssueObject;
+import j2p.J2P.objects.SprintObject;
+import j2p.J2P.translators.time.SprintTime;
 
 public class QuarterBasedData {
 	
@@ -20,6 +22,7 @@ public class QuarterBasedData {
 	private int numOfSprints = 0;
 	
 	private int[] closedTickets;
+	private long[] numOfDays = new long[12];
 	
 	private HashMap<Integer, List<IssueObject>> issueDict = new HashMap<Integer, List<IssueObject>>();
 
@@ -38,7 +41,7 @@ public class QuarterBasedData {
 				sprints.add(io.getSprintObject().getName().replace(' ', '-').toLowerCase());
 			}
 		}
-
+		
 		for(String s : sprints) {
 			List<IssueObject> temp = new ArrayList<IssueObject>();
 			for(IssueObject o : issues) {
@@ -74,6 +77,13 @@ public class QuarterBasedData {
 		}
 	}
 	
+	public void calculateSprintLengths(List<SprintObject> so, boolean incldWknd,int numOfWeekendDays) {
+		for(SprintObject s : so) {
+			SprintTime st = new SprintTime(s);
+			numOfDays[Integer.parseInt(s.getStartMonth())-1]+=st.determineLength(incldWknd, numOfWeekendDays);
+		}
+	}
+	
 	public int[] totalTickets() {
 		return totalTickets;
 	}
@@ -96,6 +106,10 @@ public class QuarterBasedData {
 	
 	public int[] getOpenTickets() {
 		return openTickets;
+	}
+	
+	public long[] getNumOfDays() {
+		return numOfDays;
 	}
 	
 	public int getNumOfSprints() {

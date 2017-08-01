@@ -40,7 +40,7 @@ public class SprintObject {
 		
 		c = day.toCharArray();
 		day = "";
-		day = "" + c[5] + c[6] + "/" + c[8] + c[9] + "/" + c[0] + c[1] + c[2] + c[3];
+		day = "" + c[5] + c[6] + "-" + c[8] + c[9] + "-" + c[0] + c[1] + c[2] + c[3];
 		
 		startMonth = "" + c[5] + c[6];
 		

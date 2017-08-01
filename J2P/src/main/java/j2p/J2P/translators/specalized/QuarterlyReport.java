@@ -24,9 +24,11 @@ public class QuarterlyReport extends Report {
 	
 	private QuarterBasedData qbd;
 	
-	public QuarterlyReport(List<IssueObject> issues, List<TaskObject> tasks, List<PriorityObject> priorities) {
+	public QuarterlyReport(List<SprintObject> sprints, List<IssueObject> issues, List<TaskObject> tasks, List<PriorityObject> priorities,
+			boolean incldWknd, int numDays) {
 		super(issues, tasks, priorities);
 		qbd = new QuarterBasedData(issues, gd.priorities.length);
+		qbd.calculateSprintLengths(sprints, incldWknd, numDays);
 	}
 
 	@Override
@@ -181,7 +183,7 @@ public class QuarterlyReport extends Report {
 		        	} else if(i==1) {
 		        		r.setText(qbd.totalTickets()[rownum]+"");
 		        	} else {
-		        		r.setText((double)(qbd.totalTickets()[rownum])/(double)(2)*100+"%");
+		        		r.setText((double)(qbd.totalTickets()[rownum])/(double)(qbd.getNumOfDays()[rownum])+"");
 		        	}
 		        	
 		        	if(rownum % 2 == 0)

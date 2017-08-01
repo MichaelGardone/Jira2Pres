@@ -28,19 +28,24 @@ public class List2PPT {
 	private List<TaskObject> tasks = null;
 	private List<PriorityObject> priorities = null;
 	private Report report = null;
+	private boolean incldeWknds;
+	private int numOfDays;
 	
-	public List2PPT(List<SprintObject> so, List<IssueObject> issues, List<TaskObject> tasks, List<PriorityObject> priorities) {
+	public List2PPT(List<SprintObject> so, List<IssueObject> issues, List<TaskObject> tasks, List<PriorityObject> priorities,
+			boolean incldeWknds, int numOfDays) {
 		this.so = so;
 		this.issues = issues;
 		this.tasks = tasks;
 		this.priorities = priorities;
+		this.incldeWknds = incldeWknds;
+		this.numOfDays = numOfDays;
 	}
 	
 	public void loadFileLocation() {
 		String OS = System.getProperty("os.name").toLowerCase();
     	String home = System.getProperty("user.home");
     	if(OS.indexOf("win") >= 0) { // Windows
-        	pptDirectory   = new File(home+"/Documents/J2P/PowerPoint");
+        	pptDirectory   = new File("H:/Documents/J2P/PowerPoint");
         } else if(OS.indexOf("mac") >= 0) { // Mac
         	pptDirectory   = new File(home+"/Documents/J2P/PowerPoint");
         } else if(OS.indexOf("sunos") >= 0) { // Solaris
@@ -64,7 +69,7 @@ public class List2PPT {
 				report.writeReport(ss, sprint);
 				outputSprintReport();
 			} else if (reportStyle == 1) {
-				report = new QuarterlyReport(issues, tasks, priorities);
+				report = new QuarterlyReport(so, issues, tasks, priorities, incldeWknds, numOfDays);
 				report.writeReport(ss, sprint);
 				outputQuarterReport();
 			}

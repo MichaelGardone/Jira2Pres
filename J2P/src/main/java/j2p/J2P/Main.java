@@ -6,11 +6,10 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -65,16 +64,21 @@ public class Main {
 	private JButton btnDeselectCurrent = null;
 	private JComboBox slctTrackMethod  = null;
 	private JTextField txtFldNewOption;
+	JPanel panel4					   = null;
+	JPanel panel3					   = null;
+	JPanel panel2					   = null;
+	JPanel panel1					   = null;
+	
 	
 	// Custom variables
-	private int majVersion   = 0;
-	private int minVersion   = 0;
-	private long buildNum    = 0;
-	private String url 		 = "";
-	private String user 	 = "";
-	private String pass 	 = "";
-	private boolean devBuild = true;
-	//private SCBMContent content = new SCBMContent(10);
+	private int majVersion   	 = 0;
+	private int minVersion   	 = 0;
+	private long buildNum    	 = 0;
+	private String url 		 	 = "";
+	private String user 	 	 = "";
+	private String pass 	 	 = "";
+	private boolean devBuild	 = false;
+	private boolean includeWknds = false;
 	
 	// Custom Objects
 	private Connection connection  = null;
@@ -92,10 +96,12 @@ public class Main {
 	private List<PriorityObject> priorities  = new ArrayList<PriorityObject>();
 	private List<TaskObject> taskTypes 		 = new ArrayList<TaskObject>();
 	private List<JRadioButton> exportOptions = new ArrayList<JRadioButton>();
+	private List<JRadioButton> incldWknds    = new ArrayList<JRadioButton>();
 	
 	// Hashmaps
 	private HashMap<Integer, Integer> boardSprintDict = new HashMap<Integer, Integer>();
 	private HashMap<String, CustomFieldObject>cfoDict = new HashMap<String, CustomFieldObject>();
+	private JTextField txtFldNumDays;
 	
 	/**
 	 * Launch the application.
@@ -149,7 +155,7 @@ public class Main {
 		frmJirapresentation.getContentPane().setLayout(null);
 		frmJirapresentation.setResizable(false); // TODO: Make the UI scale when resizing and have a minimum size
 		
-		final JPanel panel4 = new JPanel();
+		panel4 = new JPanel();
 		panel4.setBackground(new Color(0, 153, 255));
 		panel4.setBounds(0, 0, 1200, 800);
 		frmJirapresentation.getContentPane().add(panel4);
@@ -203,18 +209,6 @@ public class Main {
 		scrollPane_2.setBounds(320, 150, 600, 530);
 		panel4.add(scrollPane_2);
 		
-		JButton button_1 = new JButton("Select All");
-		button_1.setFont(new Font("SansSerif", Font.PLAIN, 16));
-		button_1.setEnabled(false);
-		button_1.setBounds(87, 190, 162, 25);
-		panel4.add(button_1);
-		
-		JButton button_2 = new JButton("Deselect Current");
-		button_2.setFont(new Font("SansSerif", Font.PLAIN, 16));
-		button_2.setEnabled(false);
-		button_2.setBounds(87, 150, 162, 25);
-		panel4.add(button_2);
-		
 		final JCheckBox chckbxExportAsXlsx = new JCheckBox("Export as .XLSX");
 		chckbxExportAsXlsx.setSelected(true);
 		chckbxExportAsXlsx.setFont(new Font("SansSerif", Font.PLAIN, 13));
@@ -251,21 +245,102 @@ public class Main {
 		lblExportAs.setBounds(972, 154, 162, 21);
 		panel4.add(lblExportAs);
 		
+		JLabel lblIncludeWeekends = new JLabel("Include Weekends?");
+		lblIncludeWeekends.setHorizontalAlignment(SwingConstants.CENTER);
+		lblIncludeWeekends.setFont(new Font("SansSerif", Font.PLAIN, 16));
+		lblIncludeWeekends.setBounds(39, 396, 150, 20);
+		panel4.add(lblIncludeWeekends);
+		
+		final JRadioButton rdbtnYes = new JRadioButton("Yes");
+		rdbtnYes.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(rdbtnYes.isSelected()) {
+					for(JRadioButton rbd : incldWknds) {
+						if(rbd.getText() != rdbtnYes.getText()) rbd.setSelected(false);
+					}
+					txtFldNumDays.setEnabled(false);
+					includeWknds = true;
+				}
+			}
+		});
+		rdbtnYes.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		rdbtnYes.setBackground(new Color(0, 153, 255));
+		rdbtnYes.setBounds(40, 425, 127, 25);
+		incldWknds.add(rdbtnYes);
+		panel4.add(rdbtnYes);
+		
+		final JRadioButton rdbtnNo = new JRadioButton("No");
+		rdbtnNo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(rdbtnNo.isSelected()) {
+					for(JRadioButton rbd : incldWknds) {
+						if(rbd.getText() != rdbtnNo.getText()) rbd.setSelected(false);
+					}
+					txtFldNumDays.setEnabled(true);
+					includeWknds = false;
+				}
+			}
+		});
+		rdbtnNo.setSelected(true);
+		rdbtnNo.setBackground(new Color(0, 153, 255));
+		rdbtnNo.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		rdbtnNo.setBounds(40, 455, 127, 25);
+		incldWknds.add(rdbtnNo);
+		panel4.add(rdbtnNo);
+		
+		JLabel lblHowManyWeekend = new JLabel("How many weekend days intersect?");
+		lblHowManyWeekend.setHorizontalAlignment(SwingConstants.CENTER);
+		lblHowManyWeekend.setFont(new Font("SansSerif", Font.PLAIN, 16));
+		lblHowManyWeekend.setBounds(12, 490, 275, 20);
+		panel4.add(lblHowManyWeekend);
+		
+		txtFldNumDays = new JTextField();
+		txtFldNumDays.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		txtFldNumDays.setText("-1");
+		txtFldNumDays.setBounds(40, 523, 116, 22);
+		panel4.add(txtFldNumDays);
+		txtFldNumDays.setColumns(10);
+		
 		final JButton btnGenerateReport = new JButton("Generate Report");
 		btnGenerateReport.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(chckbxExportAsPpt.isSelected()) {
-					List2PPT l2p = new List2PPT(sprints, issues, taskTypes, priorities);
-					l2p.loadFileLocation();
-					if(rbSprintReport.isSelected()) l2p.writeReport(0);
-					else if(rbQuarterlyReport.isSelected()) l2p.writeReport(1);
-				}
-				if(chckbxExportAsXlsx.isSelected()) {
-					List2Excel l2e = new List2Excel(issues, priorities, taskTypes);
-					l2e.loadFileLocation();
-					l2e.getStatistics();
-					l2e.populateSheet("Report");
+				if(rdbtnYes.isSelected() || (rdbtnNo.isSelected() && (txtFldNumDays.getText() != "" || txtFldNumDays.getText() != " ") && 
+						Integer.parseInt(txtFldNumDays.getText()) >= 0)) {
+					if(chckbxExportAsPpt.isSelected()) {
+						List2PPT l2p = new List2PPT(sprints, issues, taskTypes, priorities, includeWknds,
+								Integer.parseInt((txtFldNumDays.getText())));
+						l2p.loadFileLocation();
+						if(rbSprintReport.isSelected()) l2p.writeReport(0);
+						else if(rbQuarterlyReport.isSelected()) l2p.writeReport(1);
+					}
+					if(chckbxExportAsXlsx.isSelected()) {
+						List2Excel l2e = new List2Excel(issues, priorities, taskTypes);
+						l2e.loadFileLocation();
+						l2e.getStatistics();
+						l2e.populateSheet("Report");
+					}
+				} else {
+					if(Integer.parseInt(txtFldNumDays.getText()) >= 0) {
+						JOptionPane.showMessageDialog(frmJirapresentation,
+							    "You have forgotten to input the number of weekend days are in your sprint!"
+							    + " It is a negative number.",
+							    "Issue trying to create report!",
+							    JOptionPane.ERROR_MESSAGE);
+					} else if (txtFldNumDays.getText() == "" || txtFldNumDays.getText() == " ") {
+						JOptionPane.showMessageDialog(frmJirapresentation,
+							    "You have forgotten to input the number of weekend days are in your sprint!",
+							    "Issue trying to create report!",
+							    JOptionPane.ERROR_MESSAGE);
+					} else {
+						JOptionPane.showMessageDialog(frmJirapresentation,
+							    "Unknown error -- Please submit this to the Issues GitHub page for J2P. \n"
+							    + "Link: https://github.com/MichaelGardone/Jira2Pres/issues",
+							    "Issue trying to create report!",
+							    JOptionPane.ERROR_MESSAGE);
+					}
 				}
 			}
 		});
@@ -275,9 +350,55 @@ public class Main {
 		btnGenerateReport.setBounds(87, 228, 162, 25);
 		panel4.add(btnGenerateReport);
 		
+		JButton btnGenerateReportFrom = new JButton("Generate Report From All");
+		btnGenerateReportFrom.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(rdbtnYes.isSelected() || (rdbtnNo.isSelected() && (txtFldNumDays.getText() != "" || txtFldNumDays.getText() != " ") && 
+						Integer.parseInt(txtFldNumDays.getText()) >= 0)) {
+					if(chckbxExportAsPpt.isSelected()) {
+						List2PPT l2p = new List2PPT(sprints, issues, taskTypes, priorities, includeWknds,
+								Integer.parseInt((txtFldNumDays.getText())));
+						l2p.loadFileLocation();
+						if(rbSprintReport.isSelected()) l2p.writeReport(0);
+						else if(rbQuarterlyReport.isSelected()) l2p.writeReport(1);
+					}
+					if(chckbxExportAsXlsx.isSelected()) {
+						List2Excel l2e = new List2Excel(issues, priorities, taskTypes);
+						l2e.loadFileLocation();
+						l2e.getStatistics();
+						l2e.populateSheet("Report");
+					}
+				} else {
+					if(Integer.parseInt(txtFldNumDays.getText()) >= 0) {
+						JOptionPane.showMessageDialog(frmJirapresentation,
+							    "You have forgotten to input the number of weekend days are in your sprint!"
+							    + " It is a negative number.",
+							    "Issue trying to create report!",
+							    JOptionPane.ERROR_MESSAGE);
+					} else if (txtFldNumDays.getText() == "" || txtFldNumDays.getText() == " ") {
+						JOptionPane.showMessageDialog(frmJirapresentation,
+							    "You have forgotten to input the number of weekend days are in your sprint!",
+							    "Issue trying to create report!",
+							    JOptionPane.ERROR_MESSAGE);
+					} else {
+						JOptionPane.showMessageDialog(frmJirapresentation,
+							    "Unknown error -- Please submit this to the Issues GitHub page for J2P. \n"
+							    + "Link: https://github.com/MichaelGardone/Jira2Pres/issues",
+							    "Issue trying to create report!",
+							    JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			}
+		});
+		btnGenerateReportFrom.setToolTipText("Generate a report from all of the issues.");
+		btnGenerateReportFrom.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		btnGenerateReportFrom.setBounds(65, 178, 210, 25);
+		panel4.add(btnGenerateReportFrom);
+		
 		SortedComboBoxModel scbm = new SortedComboBoxModel(new String[] { "Story Points" } );
 		
-		final JPanel panel3 = new JPanel();
+		panel3 = new JPanel();
 		panel3.setBackground(new Color(0, 153, 255));
 		panel3.setBounds(0, 0, 1200, 800);
 		frmJirapresentation.getContentPane().add(panel3);
@@ -398,7 +519,7 @@ public class Main {
 		lblAddAnotherField.setBounds(144, 394, 175, 16);
 		panel3.add(lblAddAnotherField);
 		
-		final JPanel panel2 = new JPanel();
+		panel2 = new JPanel();
 		panel2.setBackground(new Color(0, 153, 255));
 		panel2.setBounds(0, 0, 1200, 800);
 		frmJirapresentation.getContentPane().add(panel2);
@@ -479,7 +600,7 @@ public class Main {
 		btnGetSprints.setBounds(87, 228, 162, 25);
 		panel2.add(btnGetSprints);
 		
-		final JPanel panel1 = new JPanel();
+		panel1 = new JPanel();
 		panel1.setBackground(new Color(0, 153, 255));
 		panel1.setBounds(0, 0, 1200, 800);
 		frmJirapresentation.getContentPane().add(panel1);
