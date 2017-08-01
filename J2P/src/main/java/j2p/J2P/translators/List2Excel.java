@@ -205,4 +205,8 @@ public class List2Excel {
 		return loopNum;
 	}
 	
+	public String getDirectory() {
+		return excelDirectory.toString();
+	}
+	
 }

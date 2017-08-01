@@ -9,7 +9,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -38,6 +37,7 @@ import j2p.J2P.connections.PrioritiesConnection;
 import j2p.J2P.connections.SprintConnection;
 import j2p.J2P.connections.TaskLengthConnection;
 import j2p.J2P.connections.TaskTypeConnection;
+import j2p.J2P.customfields.CheckListItem;
 import j2p.J2P.customfields.JListGenerator;
 import j2p.J2P.customfields.SortedComboBoxModel;
 import j2p.J2P.objects.BoardObject;
@@ -77,7 +77,7 @@ public class Main {
 	private String url 		 	 = "";
 	private String user 	 	 = "";
 	private String pass 	 	 = "";
-	private boolean devBuild	 = false;
+	private boolean devBuild	 = true;
 	private boolean includeWknds = false;
 	
 	// Custom Objects
@@ -310,7 +310,14 @@ public class Main {
 				if(rdbtnYes.isSelected() || (rdbtnNo.isSelected() && (txtFldNumDays.getText() != "" || txtFldNumDays.getText() != " ") && 
 						Integer.parseInt(txtFldNumDays.getText()) >= 0)) {
 					if(chckbxExportAsPpt.isSelected()) {
-						List2PPT l2p = new List2PPT(sprints, issues, taskTypes, priorities, includeWknds,
+						List<IssueObject> selIssues = new ArrayList<IssueObject>();
+						System.out.println(jList.getSelectedIndices().length);
+						for(Object o : jList.getSelectedValuesList()) {
+							CheckListItem cli = (CheckListItem) o;
+							selIssues.add(cli.getIssue());
+							System.out.println(o.toString());
+						}
+						List2PPT l2p = new List2PPT(sprints, selIssues, taskTypes, priorities, includeWknds,
 								Integer.parseInt((txtFldNumDays.getText())));
 						l2p.loadFileLocation();
 						if(rbSprintReport.isSelected()) l2p.writeReport(0);
@@ -452,7 +459,8 @@ public class Main {
 						connection.shutDown();
 						c++;
 					}
-					jList = listGen.generateIssueList(issues, issueIds, btnGenerateReport);
+					//jList = listGen.generateIssueList(issues, issueIds, btnGenerateReport);
+					jList = listGen.generateIssueList(issues, issueIds, null);
 					scrollPane_2.setViewportView(jList);
 					panel3.setVisible(false);
 					panel4.setVisible(true);

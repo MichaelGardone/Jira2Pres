@@ -1,5 +1,7 @@
 package j2p.J2P.customfields;
 
+import j2p.J2P.objects.IssueObject;
+
 public class CheckListItem {
 	private String label;
 	private boolean isSelected = false;
@@ -8,6 +10,7 @@ public class CheckListItem {
 	private String key;
 	private String startDate;
 	private String closeDate;
+	private IssueObject issue;
 	
 	public CheckListItem(String label, int id) {
 		this.label = label;
@@ -18,6 +21,13 @@ public class CheckListItem {
 		this.label = label;
 		this.id = id;
 		this.key = key;
+	}
+	
+	public CheckListItem(String label, int id, String key, IssueObject issue) {
+		this.label = label;
+		this.id = id;
+		this.key = key;
+		this.issue = issue;
 	}
 	
 	public CheckListItem(String label, int id, String key, String startDate) {
@@ -62,5 +72,9 @@ public class CheckListItem {
 	@Override
 	public String toString() {
 		return label;
+	}
+	
+	public IssueObject getIssue() {
+		return issue;
 	}
 }

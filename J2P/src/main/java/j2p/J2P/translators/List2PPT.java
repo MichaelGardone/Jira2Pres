@@ -45,7 +45,11 @@ public class List2PPT {
 		String OS = System.getProperty("os.name").toLowerCase();
     	String home = System.getProperty("user.home");
     	if(OS.indexOf("win") >= 0) { // Windows
-        	pptDirectory   = new File("H:/Documents/J2P/PowerPoint");
+    		if(home.toCharArray()[0] == 'Z') {
+    			pptDirectory   = new File("H:/J2P/PowerPoint");
+    		} else {
+    			pptDirectory   = new File(home+"/Documents/J2P/PowerPoint");
+    		}
         } else if(OS.indexOf("mac") >= 0) { // Mac
         	pptDirectory   = new File(home+"/Documents/J2P/PowerPoint");
         } else if(OS.indexOf("sunos") >= 0) { // Solaris
@@ -102,6 +106,10 @@ public class List2PPT {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public String getDirectory() {
+		return pptDirectory.toString();
 	}
 	
 }

@@ -38,7 +38,7 @@ public class JListGenerator {
 		
 		for(IssueObject io : issue) {
 			cli.add(new CheckListItem(io.getSummary() + " (Id: " + io.getId() + ", Type: " + io.getType()
-					+ ", Status: " + io.getStatus() + ")", Integer.parseInt(io.getId()), io.getSummary()));
+					+ ", Status: " + io.getStatus() + ")", Integer.parseInt(io.getId()), io.getSummary(), io));
 		}
 		
 		JList list = new JList(cli.toArray());
