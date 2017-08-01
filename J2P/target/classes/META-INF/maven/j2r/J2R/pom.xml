@@ -1,0 +1,99 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>j2r</groupId>
+  <artifactId>J2R</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>J2R</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- POI -->
+    <dependency>
+	    <groupId>org.apache.poi</groupId>
+	    <artifactId>poi</artifactId>
+	    <version>3.16</version>
+	</dependency>
+	<dependency>
+	    <groupId>org.apache.poi</groupId>
+	    <artifactId>poi-scratchpad</artifactId>
+	    <version>3.16</version>
+	</dependency>
+	<dependency>
+	    <groupId>org.apache.poi</groupId>
+	    <artifactId>poi-ooxml</artifactId>
+	    <version>3.16</version>
+	</dependency>
+    <!-- POI -->
+    <dependency>
+	    <groupId>org.apache.xmlbeans</groupId>
+	    <artifactId>xmlbeans</artifactId>
+	    <version>2.6.0</version>
+	</dependency>
+	<dependency>
+	<groupId>org.glassfish.jersey.core</groupId>
+	    <artifactId>jersey-client</artifactId>
+	    <version>2.26-b03</version>
+	</dependency>
+    
+    <dependency>
+	  <groupId>com.atlassian.jira</groupId>
+	  <artifactId>jira-rest-api</artifactId>
+	  <version>7.3.8</version>
+	</dependency>
+	<dependency>
+		<groupId>org.glassfish.grizzly</groupId>
+		<artifactId>grizzly-http-server-core</artifactId>
+		<version>2.3.31</version>
+	</dependency>
+	<dependency>
+	    <groupId>org.glassfish</groupId>
+	    <artifactId>javax.json</artifactId>
+	    <version>1.0.4</version>
+	</dependency>
+  </dependencies>
+
+  <repositories>
+  	<repository>
+	    <id>snapshot-repository.java.net</id>
+	    <name>Java.net Snapshot Repository for Maven</name>
+	    <url>https://maven.java.net/content/repositories/snapshots/</url>
+	    <layout>default</layout>
+	</repository>
+    <repository>
+        <id>central</id>
+        <name>Atlassian Public Repository</name>
+        <layout>default</layout>
+        <url>http://maven.atlassian.com/public</url>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+	</repository>
+	<repository>
+        <id>atlassian-public</id>
+        <url>https://m2proxy.atlassian.com/repository/public</url>
+        <snapshots>
+            <enabled>true</enabled>
+            <updatePolicy>daily</updatePolicy>
+            <checksumPolicy>warn</checksumPolicy>
+        </snapshots>
+        <releases>
+            <enabled>true</enabled>
+            <checksumPolicy>warn</checksumPolicy>
+        </releases>
+    </repository>
+  </repositories>
+</project>
