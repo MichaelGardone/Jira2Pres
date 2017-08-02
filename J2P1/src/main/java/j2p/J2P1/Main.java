@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
@@ -31,13 +32,23 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import j2p.J2P1.connections.BoardConnection;
+import j2p.J2P1.connections.CFOConnection;
 import j2p.J2P1.connections.Connection;
 import j2p.J2P1.connections.ConnectionPool;
-import j2p.J2P1.models.SearchableModel;
+import j2p.J2P1.connections.IssueConnection;
+import j2p.J2P1.connections.PrioritiesConnection;
+import j2p.J2P1.connections.SprintConnection;
+import j2p.J2P1.connections.TaskTypeConnection;
 import j2p.J2P1.objects.BoardObject;
+import j2p.J2P1.objects.CustomFieldObject;
 import j2p.J2P1.objects.IssueObject;
+import j2p.J2P1.objects.PriorityObject;
+import j2p.J2P1.objects.SprintObject;
+import j2p.J2P1.objects.TaskObject;
 import j2p.J2P1.translators.Json2Object;
 
 public class Main {
@@ -46,8 +57,18 @@ public class Main {
 	private int minVer = 0;
 	private long buildNum = 0;
 	
-	private List<BoardObject> boards = new ArrayList<BoardObject>();
-	private List<IssueObject> issues = new ArrayList<IssueObject>();
+	private List<BoardObject> boards 		   = new ArrayList<BoardObject>();
+	private List<PriorityObject> priorities    = new ArrayList<PriorityObject>();
+	private List<TaskObject> tasks			   = new ArrayList<TaskObject>();
+	private List<SprintObject> sprints		   = new ArrayList<SprintObject>();
+	private List<IssueObject> issues 		   = new ArrayList<IssueObject>();
+	private List<IssueObject> selIssues		   = new ArrayList<IssueObject>();
+	private List<JRadioButton> sprintIncActive = new ArrayList<JRadioButton>();
+	private List<JRadioButton> sprintIncFuture = new ArrayList<JRadioButton>();
+	private List<JRadioButton> issuesIncOpen   = new ArrayList<JRadioButton>();
+	private List<JRadioButton> issuesIncIP	   = new ArrayList<JRadioButton>();
+	
+	private HashMap<String, CustomFieldObject> cfos	= null;
 	
 	private Connection connection = null;
 	private ConnectionPool cp = new ConnectionPool();
@@ -56,6 +77,10 @@ public class Main {
 	private JList boardList = null;
 	private JList sprintList = null;
 	private JList issuesList = null;
+	
+	private String url  = "";
+	private String user = "";
+	private String pass = "";
 	
 	private JFrame frmJirapresentation;
 	private JTextField txtFldURL;
@@ -74,7 +99,7 @@ public class Main {
 	private JLabel lblSelectBoard;
 	private JButton btnGetSprints;
 	private JLabel lblSelectedBoards;
-	private JLabel lblBoardList;
+	private JLabel lblBoardList;// = new JLabel("N/A"); // HERE
 	private JButton btnSelectAll;
 	private JButton btnDeselectAll;
 	private JScrollPane spBoards;
@@ -113,6 +138,10 @@ public class Main {
 	private JRadioButton rdbtnYes_2;
 	private JRadioButton rdbtnNo_2;
 	private JPasswordField pfFldPass;
+	private JLabel lblSelectTimeTracker;
+	private JComboBox cmbTracker;
+	private JTextField textField;
+	private JButton btnAdd;
 	
 	/**
 	 * Launch the application.
@@ -154,8 +183,8 @@ public class Main {
 		frmJirapresentation.setBounds(100, 100, 1200, 800);
 		frmJirapresentation.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		panel_1 = new JPanel();
-		panel_1.setVisible(false);
+		panel_2 = new JPanel();
+		panel_2.setVisible(false);
 		
 		panel = new JPanel();
 		panel.setBackground(new Color(85, 141, 252));
@@ -230,6 +259,7 @@ public class Main {
 		aboutThisPanel.add(lblAboutTheProject);
 		
 		JLabel lblTodo = new JLabel("TODO");
+		lblTodo.setVerticalAlignment(SwingConstants.TOP);
 		lblTodo.setFont(new Font("SansSerif", Font.ITALIC, 14));
 		lblTodo.setBounds(12, 42, 621, 141);
 		aboutThisPanel.add(lblTodo);
@@ -240,6 +270,7 @@ public class Main {
 		aboutThisPanel.add(lblAboutMe);
 		
 		JLabel label_1 = new JLabel("TODO");
+		label_1.setVerticalAlignment(SwingConstants.TOP);
 		label_1.setFont(new Font("SansSerif", Font.ITALIC, 14));
 		label_1.setBounds(12, 225, 621, 141);
 		aboutThisPanel.add(label_1);
@@ -292,20 +323,71 @@ public class Main {
 					String result = connection.connect();
 					if(result == "") {
 						boards = j2o.jsonToBoard(new StringReader(connection.getResult()));
-						panel.setEnabled(false);
-						panel.setVisible(false);
-						panel_1.setVisible(true);
+						url  = connection.getUrl();
+						user = connection.getUser();
+						pass = connection.getPass();
 						connection.shutDown();
 						cp.addToPool("Boards", connection);
+						
+						connection = new PrioritiesConnection(url, user, pass);
+						String res2 = connection.connect();
+						if(res2 == "") {
+							priorities = j2o.jsonToPriority(new StringReader(connection.getResult()));
+							connection.shutDown();
+							cp.addToPool("Priorities", connection);
+						}
+						
+						connection = new TaskTypeConnection(url, user, pass);
+						res2 = connection.connect();
+						if(res2=="") {
+							tasks = j2o.jsonToTaskType(new StringReader(connection.getResult()));
+							connection.shutDown();
+							cp.addToPool("TaskTypes", connection);
+						}
+						
+						connection = new CFOConnection(url, user, pass);
+						res2 = connection.connect();
+						if(res2 == "") {
+							cfos = j2o.jsonToCFObj(new StringReader(connection.getResult()));
+							connection.shutDown();
+							cp.addToPool("CustomFieldObjects", connection);
+						}
+						
 						DefaultListModel dlm = new DefaultListModel();
 						for(BoardObject b : boards) {
 							dlm.addElement(b.getName());
 						}
 						boardList = new JList(dlm);
+						boardList.addListSelectionListener(new ListSelectionListener() {
+							@Override
+							public void valueChanged(ListSelectionEvent e) {
+								if(lblBoardList.getText().equals("N/A")) {
+									lblBoardList.setText("");
+								}
+								if(boardList.getSelectedValuesList().size() == 0) {
+									lblBoardList.setText("N/A");
+								}
+								if(lblBoardList.getText().split(", ").length > boardList.getSelectedValuesList().size()) {
+									lblBoardList.setText("");
+								}
+								for(int i=0; i<boardList.getSelectedValuesList().size(); i++) {
+									if(i==0) {
+										lblBoardList.setText(boardList.getSelectedValuesList().get(i).toString());
+									} else {
+										lblBoardList.setText(lblBoardList.getText() + ", " + 
+													boardList.getSelectedValuesList().get(i).toString());
+									}
+								}
+							}
+						});
 						spBoards = new JScrollPane(boardList);
 						spBoards.setBounds(380, 150, 500, 550);
 						panel_1.add(spBoards);
-						panel_1.repaint();
+						
+						panel.setEnabled(false);
+						panel.setVisible(false);
+						panel_1.setVisible(true);
+						panel_1.setEnabled(true);
 					} else {
 						JOptionPane.showMessageDialog(frmJirapresentation,
 							    result,
@@ -334,6 +416,9 @@ public class Main {
 		btnClear.setBounds(130, 460, 140, 25);
 		panel.add(btnClear);
 		
+		panel_1 = new JPanel();
+		panel_1.setVisible(false);
+		
 		panel_1.setBackground(new Color(85, 141, 252));
 		panel_1.setBounds(0, 0, frmJirapresentation.getWidth(), frmJirapresentation.getHeight());
 		frmJirapresentation.getContentPane().add(panel_1);
@@ -348,7 +433,61 @@ public class Main {
 		btnGetSprints.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				System.out.println(boardList.getSelectedValuesList().get(0));
+				sprints.clear();
+				for(Object o : boardList.getSelectedValuesList()) {
+					for(BoardObject b : boards) {
+						if(b.getName().equals(o.toString())) {
+							connection = new SprintConnection(url, user, pass);
+							String result = connection.connect(b.getId());
+							if(result == "") {
+								sprints.addAll(j2o.jsonToSprintObj(new StringReader(connection.getResult()), b));
+								connection.shutDown();
+								cp.addToPool("Sprint-B" + b.getId(), connection);
+							} else {
+								JOptionPane.showMessageDialog(frmJirapresentation,
+									    result,
+									    "Issue trying to connect!",
+									    JOptionPane.ERROR_MESSAGE);
+							}
+						}
+					}
+				}
+				
+				DefaultListModel dlm = new DefaultListModel();
+				for(SprintObject s : sprints) {
+					dlm.addElement(s.getName());
+				}
+				sprintList = new JList(dlm);
+				sprintList.addListSelectionListener(new ListSelectionListener() {
+					@Override
+					public void valueChanged(ListSelectionEvent e) {
+						if(lblSprintList.getText().equals("N/A")) {
+							lblSprintList.setText("");
+						}
+						if(sprintList.getSelectedValuesList().size() == 0) {
+							lblSprintList.setText("N/A");
+						}
+						if(lblSprintList.getText().split(", ").length > sprintList.getSelectedValuesList().size()) {
+							lblSprintList.setText("");
+						}
+						for(int i=0; i<sprintList.getSelectedValuesList().size(); i++) {
+							if(i==0) {
+								lblSprintList.setText(sprintList.getSelectedValuesList().get(i).toString());
+							} else {
+								lblSprintList.setText(lblSprintList.getText() + ", " + 
+										sprintList.getSelectedValuesList().get(i).toString());
+							}
+						}
+					}
+				});
+				spSprints = new JScrollPane(sprintList);
+				spSprints.setBounds(380, 150, 500, 550);
+				panel_2.add(spSprints);
+				
+				panel_1.setEnabled(false);
+				panel_1.setVisible(false);
+				panel_2.setEnabled(true);
+				panel_2.setVisible(true);
 			}
 		});
 		btnGetSprints.setFont(new Font("SansSerif", Font.ITALIC, 16));
@@ -367,7 +506,7 @@ public class Main {
 		
 		lblSelectedBoards = new JLabel("Selected Boards:");
 		lblSelectedBoards.setFont(new Font("SansSerif", Font.BOLD, 18));
-		lblSelectedBoards.setBounds(70, 450, 150, 20);
+		lblSelectedBoards.setBounds(70, 450, 170, 20);
 		panel_1.add(lblSelectedBoards);
 		
 		lblBoardList = new JLabel("N/A");
@@ -397,17 +536,15 @@ public class Main {
 		panel_1.add(txtFldSearchBoards);
 		txtFldSearchBoards.setColumns(10);
 		
-		panel_2 = new JPanel();
-		panel_2.setVisible(false);
-		
 		button = new JButton("Back");
 		button.setFont(new Font("SansSerif", Font.ITALIC, 16));
 		button.setBounds(70, 300, 160, 25);
 		panel_1.add(button);
+		panel_2.setEnabled(false);
 		panel_2.setBackground(new Color(85, 141, 252));
 		panel_2.setBounds(0, 0, frmJirapresentation.getWidth(), frmJirapresentation.getHeight());
-		frmJirapresentation.getContentPane().add(panel_2);
 		panel_2.setLayout(null);
+		frmJirapresentation.getContentPane().add(panel_2);
 		
 		lblSelectSprints = new JLabel("Select Sprints");
 		lblSelectSprints.setFont(new Font("SansSerif", Font.BOLD | Font.ITALIC, 24));
@@ -415,6 +552,63 @@ public class Main {
 		panel_2.add(lblSelectSprints);
 		
 		btnGetIssues = new JButton("Get Issues");
+		btnGetIssues.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				issues.clear();
+				for(Object o : sprintList.getSelectedValuesList()) {
+					for(SprintObject s : sprints) {
+						if(s.getName().equals(o.toString())) {
+							connection = new IssueConnection(url, user, pass);
+							String result = connection.connect(s.getBoardObject().getId(), s.getId());
+							if(result == ""){
+								issues.addAll(j2o.jsonToIssue(new StringReader(connection.getResult()), 
+										cfos.get(cmbTracker.getSelectedItem()).getIdAsString(), s));
+								connection.shutDown();
+								cp.addToPool("Sprint " + s.getId(), connection);
+							} else {
+								JOptionPane.showMessageDialog(frmJirapresentation,
+									    result,
+									    "Issue trying to connect!",
+									    JOptionPane.ERROR_MESSAGE);
+							}
+						}
+					}
+				}
+				DefaultListModel dlm = new DefaultListModel();
+				for(IssueObject i : issues) {
+					dlm.addElement(i.getSummary());
+				}
+				issuesList = new JList(dlm);
+				issuesList.addListSelectionListener(new ListSelectionListener() {
+					@Override
+					public void valueChanged(ListSelectionEvent e) {
+						if(issuesList.getSelectedValuesList().size() == 0) {
+							selIssues.clear();
+						}
+						if(selIssues.size() > issuesList.getSelectedValuesList().size()) {
+							selIssues.clear();
+						}
+						for(Object o : issuesList.getSelectedValuesList()) {
+							for(IssueObject i : issues) {
+								if(o.toString().equals(i.getSummary()) && !selIssues.contains(i)) {
+									selIssues.add(i);
+								} else if(o.toString().equals(i.getSummary()) && selIssues.contains(i)) {
+									selIssues.remove(i);
+								}
+							}
+						}
+					}
+				});
+				spIssueList = new JScrollPane(issuesList);
+				spIssueList.setBounds(380, 150, 500, 550);
+				panel_3.add(spIssueList);
+				panel_2.setEnabled(false);
+				panel_2.setVisible(false);
+				panel_3.setEnabled(true);
+				panel_3.setVisible(true);
+			}
+		});
 		btnGetIssues.setFont(new Font("SansSerif", Font.ITALIC, 16));
 		btnGetIssues.setBounds(70, 150, 160, 25);
 		panel_2.add(btnGetIssues);
@@ -431,7 +625,7 @@ public class Main {
 		
 		lblSelectedSprints = new JLabel("Selected Sprints:");
 		lblSelectedSprints.setFont(new Font("SansSerif", Font.BOLD, 18));
-		lblSelectedSprints.setBounds(70, 450, 140, 20);
+		lblSelectedSprints.setBounds(70, 480, 140, 20);
 		panel_2.add(lblSelectedSprints);
 		
 		lblSprintList = new JLabel("N/A");
@@ -439,10 +633,6 @@ public class Main {
 		lblSprintList.setFont(new Font("SansSerif", Font.ITALIC, 16));
 		lblSprintList.setBounds(70, 500, 300, 200);
 		panel_2.add(lblSprintList);
-		
-		spSprints = new JScrollPane();
-		spSprints.setBounds(380, 150, 500, 550);
-		panel_2.add(spSprints);
 		
 		lblSearchForSprints = new JLabel("Search for Sprints");
 		lblSearchForSprints.setHorizontalAlignment(SwingConstants.CENTER);
@@ -472,12 +662,28 @@ public class Main {
 		panel_2.add(lblFilterOutOpen);
 		
 		rdbtnYes = new JRadioButton("Yes");
+		rdbtnYes.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : sprintIncActive) {
+					if(rbd.getText() != rdbtnYes.getText()) rbd.setSelected(false);
+				}
+			}
+		});
 		rdbtnYes.setBackground(new Color(85, 141, 252));
 		rdbtnYes.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		rdbtnYes.setBounds(975, 380, 127, 25);
 		panel_2.add(rdbtnYes);
 		
 		rdbtnNo = new JRadioButton("No");
+		rdbtnNo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : sprintIncActive) {
+					if(rbd.getText() != rdbtnNo.getText()) rbd.setSelected(false);
+				}
+			}
+		});
 		rdbtnNo.setBackground(new Color(85, 141, 252));
 		rdbtnNo.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		rdbtnNo.setSelected(true);
@@ -488,6 +694,29 @@ public class Main {
 		btnBack.setFont(new Font("SansSerif", Font.ITALIC, 16));
 		btnBack.setBounds(70, 300, 160, 25);
 		panel_2.add(btnBack);
+		
+		lblSelectTimeTracker = new JLabel("Select Time Tracker");
+		lblSelectTimeTracker.setHorizontalAlignment(SwingConstants.CENTER);
+		lblSelectTimeTracker.setFont(new Font("SansSerif", Font.PLAIN, 16));
+		lblSelectTimeTracker.setBounds(70, 352, 160, 16);
+		panel_2.add(lblSelectTimeTracker);
+		
+		cmbTracker = new JComboBox();
+		cmbTracker.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		cmbTracker.setModel(new DefaultComboBoxModel(new String[] {"Story Points"}));
+		cmbTracker.setBounds(70, 382, 160, 22);
+		panel_2.add(cmbTracker);
+		
+		textField = new JTextField();
+		textField.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		textField.setBounds(20, 420, 190, 25);
+		panel_2.add(textField);
+		textField.setColumns(10);
+		
+		btnAdd = new JButton("Add");
+		btnAdd.setFont(new Font("SansSerif", Font.ITALIC, 14));
+		btnAdd.setBounds(220, 420, 100, 25);
+		panel_2.add(btnAdd);
 		
 		panel_3 = new JPanel();
 		panel_3.setVisible(false);
@@ -524,6 +753,15 @@ public class Main {
 		panel_3.add(chckbxNewCheckBox);
 		
 		chckbxCreatePowerpointppt = new JCheckBox("Create PowerPoint (.ppt)");
+		chckbxCreatePowerpointppt.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(!chckbxCreatePowerpointppt.isSelected()) 
+					comboBox.setEnabled(false);
+				else
+					comboBox.setEnabled(true);
+			}
+		});
 		chckbxCreatePowerpointppt.setSelected(true);
 		chckbxCreatePowerpointppt.setFont(new Font("SansSerif", Font.PLAIN, 12));
 		chckbxCreatePowerpointppt.setBackground(new Color(85, 141, 252));
@@ -536,10 +774,6 @@ public class Main {
 		comboBox.setBounds(70, 374, 170, 22);
 		panel_3.add(comboBox);
 		
-		spIssueList = new JScrollPane();
-		spIssueList.setBounds(380, 150, 500, 550);
-		panel_3.add(spIssueList);
-		
 		lblIncludeOpen = new JLabel("Include Open?");
 		lblIncludeOpen.setHorizontalAlignment(SwingConstants.CENTER);
 		lblIncludeOpen.setFont(new Font("SansSerif", Font.BOLD, 16));
@@ -547,6 +781,14 @@ public class Main {
 		panel_3.add(lblIncludeOpen);
 		
 		rdbtnYes_1 = new JRadioButton("Yes");
+		rdbtnYes_1.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : issuesIncOpen) {
+					if(rbd.getText() != rdbtnYes_1.getText()) rbd.setSelected(false);
+				}
+			}
+		});
 		rdbtnYes_1.setBackground(new Color(85, 141, 252));
 		rdbtnYes_1.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		rdbtnYes_1.setSelected(true);
@@ -554,6 +796,14 @@ public class Main {
 		panel_3.add(rdbtnYes_1);
 		
 		rdbtnNo_1 = new JRadioButton("No");
+		rdbtnNo_1.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : issuesIncOpen) {
+					if(rbd.getText() != rdbtnNo_1.getText()) rbd.setSelected(false);
+				}
+			}
+		});
 		rdbtnNo_1.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		rdbtnNo_1.setBackground(new Color(85, 141, 252));
 		rdbtnNo_1.setBounds(960, 214, 127, 25);
@@ -566,6 +816,14 @@ public class Main {
 		panel_3.add(lblIncludeInprogress);
 		
 		rdbtnYes_2 = new JRadioButton("Yes");
+		rdbtnYes_2.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : issuesIncIP) {
+					if(rbd.getText() != rdbtnYes_2.getText()) rbd.setSelected(false);
+				}
+			}
+		});
 		rdbtnYes_2.setSelected(true);
 		rdbtnYes_2.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		rdbtnYes_2.setBackground(new Color(85, 141, 252));
@@ -573,10 +831,25 @@ public class Main {
 		panel_3.add(rdbtnYes_2);
 		
 		rdbtnNo_2 = new JRadioButton("No");
+		rdbtnNo_2.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : issuesIncIP) {
+					if(rbd.getText() != rdbtnNo_2.getText()) rbd.setSelected(false);
+				}
+			}
+		});
 		rdbtnNo_2.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		rdbtnNo_2.setBackground(new Color(85, 141, 252));
 		rdbtnNo_2.setBounds(960, 319, 127, 25);
 		panel_3.add(rdbtnNo_2);
+		
+		sprintIncActive.add(rdbtnYes);
+		sprintIncActive.add(rdbtnNo);
+		issuesIncOpen.add(rdbtnYes_1);
+		issuesIncOpen.add(rdbtnNo_1);
+		issuesIncIP.add(rdbtnYes_2);
+		issuesIncIP.add(rdbtnNo_2);
 	}
 
 	private void fileLoad() {

@@ -11,13 +11,13 @@ import javax.ws.rs.client.ClientBuilder;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
-public class PrioritiesConnection extends Connection {
+public class CFOConnection extends Connection {
 
-	public PrioritiesConnection(String url, String user, char[] pass) {
+	public CFOConnection(String url, String user, char[] pass) {
 		super(url, user, pass);
 	}
 	
-	public PrioritiesConnection(String url, String user, String pass) {
+	public CFOConnection(String url, String user, String pass) {
 		super(url, user, pass);
 	}
 
@@ -34,15 +34,15 @@ public class PrioritiesConnection extends Connection {
 		
 		client = ClientBuilder.newClient();
 		client.register(auth);
-		target = client.target(curls.getPriorities(url));
-		
+		target = client.target(curls.getTaskLengthDeterminer(url));
 		try {
 			target.request().get(String.class);
 		} catch(NotAuthorizedException e) {
 			return "401 Error - Unauthorized user. Please check your username and password to make sure they are correct.";
 		} catch(ProcessingException e) {
-			return "Issue trying to connect to get priorities.";
-		}  catch(InternalServerErrorException e) {
+			return "Check your URL as it is not the correct style. Is it 'https://example:port/' or 'https://my.jira.atlassian.net/' ? The "
+					+ "last slash is very important!";
+		} catch(InternalServerErrorException e) {
 			return "500 Error - You are having a connection issue. Please contact your SysAdmins, engineers, etc. who are in"
 					+ " charge of your JIRA databases and ensure nothing fatal has happened.";
 		} catch(ServiceUnavailableException e) {
@@ -56,14 +56,12 @@ public class PrioritiesConnection extends Connection {
 
 	@Override
 	public String connect(int id) {
-		return "Don't use me!";
+		return "Do not use me!";
 	}
 
 	@Override
 	public String connect(int id, int sprintId) {
-		return "Don't use me!";
+		return "Do not use me!";
 	}
-	
-	
 	
 }

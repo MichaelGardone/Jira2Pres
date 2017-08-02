@@ -16,6 +16,10 @@ public class TaskTypeConnection extends Connection {
 	public TaskTypeConnection(String url, String user, char[] pass) {
 		super(url, user, pass);
 	}
+	
+	public TaskTypeConnection(String url, String user, String pass) {
+		super(url, user, pass);
+	}
 
 	@Override
 	public String connect() {
