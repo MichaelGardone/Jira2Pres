@@ -24,7 +24,7 @@ public class IssueConnection extends Connection {
 
 	@Override
 	public String connect(int id, int sprintId) {
-		String result = "Success";
+		String result = "";
 		auth = HttpAuthenticationFeature.basic(user,pass);
 		server = new HttpServer();
 		try {

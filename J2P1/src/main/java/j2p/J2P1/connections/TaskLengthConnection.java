@@ -19,7 +19,7 @@ public class TaskLengthConnection extends Connection {
 
 	@Override
 	public String connect() {
-		String result = "Success";
+		String result = "";
 		auth = HttpAuthenticationFeature.basic(user,pass);
 		server = new HttpServer();
 		try {

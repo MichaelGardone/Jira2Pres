@@ -21,7 +21,7 @@ public class BoardConnection extends Connection {
 	 * @return
 	 */
 	public String connect() {
-		String result = "Success";
+		String result = "";
 		auth = HttpAuthenticationFeature.basic(user,pass);
 		server = new HttpServer();
 		try {

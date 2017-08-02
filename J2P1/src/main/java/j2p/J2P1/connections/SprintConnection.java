@@ -19,7 +19,7 @@ public class SprintConnection extends Connection {
 	
 	@Override
 	public String connect(int boardId) {
-		String result = "Success";
+		String result = "";
 		auth = HttpAuthenticationFeature.basic(user,pass);
 		server = new HttpServer();
 		try {
