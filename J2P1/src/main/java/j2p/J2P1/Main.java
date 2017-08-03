@@ -131,7 +131,7 @@ public class Main {
 	private JRadioButton rdbtnNo;
 	private JPanel panel_3;
 	private JButton btnBackToP1;
-	private JButton btnBackToP;
+	private JButton btnLogout;
 	private JLabel lblSelectIssues;
 	private JButton btnGenerateReportFrom;
 	private JButton btnGenerateReportFrom_1;
@@ -554,10 +554,32 @@ public class Main {
 		panel_1.add(txtFldSearchBoards);
 		txtFldSearchBoards.setColumns(10);
 		
-		btnBackToP = new JButton("Back");
-		btnBackToP.setFont(new Font("SansSerif", Font.ITALIC, 16));
-		btnBackToP.setBounds(70, 300, 160, 25);
-		panel_1.add(btnBackToP);
+		btnLogout = new JButton("Logout");
+		btnLogout.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				issues.clear();
+				sprints.clear();
+				cp.clearPool();
+				tasks.clear();
+				priorities.clear();
+				selIssues.clear();
+				boards.clear();
+				sprintIssues.clear();
+				cfos.clear();
+				url = "";
+				user = "";
+				pass = "";
+				boardList.setModel(new DefaultListModel());
+				panel.setVisible(true);
+				panel.setEnabled(true);
+				panel_1.setEnabled(false);
+				panel_1.setVisible(false);
+			}
+		});
+		btnLogout.setFont(new Font("SansSerif", Font.ITALIC, 16));
+		btnLogout.setBounds(70, 300, 160, 25);
+		panel_1.add(btnLogout);
 		panel_2.setEnabled(false);
 		panel_2.setBackground(new Color(85, 141, 252));
 		panel_2.setBounds(0, 0, frmJirapresentation.getWidth(), frmJirapresentation.getHeight());
