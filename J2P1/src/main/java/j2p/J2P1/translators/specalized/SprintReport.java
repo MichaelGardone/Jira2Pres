@@ -107,4 +107,10 @@ public class SprintReport extends Report {
 		}
 			
 	}
+
+	@Override
+	public void writeReport(XMLSlideShow ss) {
+		// TODO Auto-generated method stub
+		
+	}
 }

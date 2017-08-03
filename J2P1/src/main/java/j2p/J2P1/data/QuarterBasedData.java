@@ -16,25 +16,26 @@ public class QuarterBasedData {
 	private double[][] totalPoints 		= null;
 	private double[][] totalClosedPoints = null;
 	
-	private double[] ticketsPerDay = new double[12];
+	private double[][] ticketsPerDay;
 	
-	private int[] totalTickets = new int[12];
+	private int[][] totalTickets;
 	private int numOfSprints = 0;
 	
-	private int[] closedTickets;
-	private long[] numOfDays = new long[12];
+	private int[][] closedTickets;
+	private long[][] numOfDays;
 	
-	private HashMap<Integer, List<IssueObject>> issueDict = new HashMap<Integer, List<IssueObject>>();
+	private HashMap<Integer, List<IssueObject>> issuesPerSprint = new HashMap<Integer, List<IssueObject>>();
 
-	private int[] openTickets;
+	private int[][] openTickets;
+	
+	private int bugTypes;
 	
 	public QuarterBasedData(List<IssueObject> issues, int bugTypes) {
 		this.issues = issues;
-		closedTickets = new int[bugTypes];
-		openTickets   = new int[bugTypes];
+		this.bugTypes = bugTypes;
 	}
 	
-	private void preCheck() {
+	public void preCheck() {
 		List<String> sprints = new ArrayList<String>();
 		for(IssueObject io : issues) {
 			if(!sprints.contains(io.getSprintObject().getName().replace(' ', '-').toLowerCase())) {
@@ -49,42 +50,42 @@ public class QuarterBasedData {
 					temp.add(o);
 				}
 			}
-			issueDict.put(numOfSprints, temp);
+			issuesPerSprint.put(numOfSprints, temp);
 			numOfSprints++;
 		}
-		totalPoints 	  = new double[issueDict.size()][12];
-		totalClosedPoints = new double[issueDict.size()][12];
+		closedTickets = new int[issuesPerSprint.size()][bugTypes];
+		openTickets   = new int[issuesPerSprint.size()][bugTypes];
+		ticketsPerDay = new double[issuesPerSprint.size()][12];
+		totalTickets = new int[issuesPerSprint.size()][12];
+		numOfDays = new long[issuesPerSprint.size()][12];
+		totalPoints 	  = new double[issuesPerSprint.size()][12];
+		totalClosedPoints = new double[issuesPerSprint.size()][12];
 	}
 	
 	public void parseData() {
-		preCheck();
-		
-		for(int i = 0; i<issueDict.size(); i++) {
-			List<IssueObject> temp = issueDict.get(i);
+		for(int i = 0; i<issuesPerSprint.size(); i++) {
+			List<IssueObject> temp = issuesPerSprint.get(i);
 			for(IssueObject io : temp) {
 				totalPoints[i][Integer.parseInt(io.getSprintObject().getStartMonth())-1]+=io.getPoints();
 				if(io.getStatus().toLowerCase().equals("done")) {
 					totalClosedPoints[i][Integer.parseInt(io.getSprintObject().getStartMonth())-1]+=io.getPoints();
-					closedTickets[io.getPriority()-1]++;
+					closedTickets[i][io.getPriority()-1]++;
 				} else {
-					openTickets[io.getPriority()-1]++;
+					openTickets[i][io.getPriority()-1]++;
 				}
+				totalTickets[i][Integer.parseInt(io.getMonth())-1]++;
 			}
-		}
-		
-		for(IssueObject io : issues) {
-			totalTickets[Integer.parseInt(io.getMonth())-1]++;
 		}
 	}
 	
 	public void calculateSprintLengths(List<SprintObject> so, boolean incldWknd,int numOfWeekendDays) {
-		for(SprintObject s : so) {
-			SprintTime st = new SprintTime(s);
-			numOfDays[Integer.parseInt(s.getStartMonth())-1]+=st.determineLength(incldWknd, numOfWeekendDays);
+		for(int i=0; i<so.size();i++) {
+			SprintTime st = new SprintTime(so.get(i));
+			numOfDays[i][Integer.parseInt(so.get(i).getStartMonth())-1]+=st.determineLength(incldWknd, numOfWeekendDays);
 		}
 	}
 	
-	public int[] totalTickets() {
+	public int[][] totalTickets() {
 		return totalTickets;
 	}
 	
@@ -96,24 +97,28 @@ public class QuarterBasedData {
 		return totalClosedPoints;
 	}
 	
-	public double[] getTicketsPerDay() {
+	public double[][] getTicketsPerDay() {
 		return ticketsPerDay;
 	}
 	
-	public int[] getClosedTickets() {
+	public int[][] getClosedTickets() {
 		return closedTickets;
 	}
 	
-	public int[] getOpenTickets() {
+	public int[][] getOpenTickets() {
 		return openTickets;
 	}
 	
-	public long[] getNumOfDays() {
+	public long[][] getNumOfDays() {
 		return numOfDays;
 	}
 	
 	public int getNumOfSprints() {
 		return numOfSprints;
+	}
+	
+	public HashMap<Integer, List<IssueObject>> getIssuesPerSprint() {
+		return issuesPerSprint;
 	}
 	
 }

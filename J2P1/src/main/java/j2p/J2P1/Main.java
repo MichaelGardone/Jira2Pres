@@ -7,10 +7,11 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,12 +51,16 @@ import j2p.J2P1.objects.PriorityObject;
 import j2p.J2P1.objects.SprintObject;
 import j2p.J2P1.objects.TaskObject;
 import j2p.J2P1.translators.Json2Object;
+import j2p.J2P1.translators.List2Excel;
+import j2p.J2P1.translators.List2PPT;
 
 public class Main {
 	
 	private int majVer = 0;
 	private int minVer = 0;
 	private long buildNum = 0;
+	
+	private boolean devBuild = true;
 	
 	private List<BoardObject> boards 		   = new ArrayList<BoardObject>();
 	private List<PriorityObject> priorities    = new ArrayList<PriorityObject>();
@@ -67,8 +72,10 @@ public class Main {
 	private List<JRadioButton> sprintIncFuture = new ArrayList<JRadioButton>();
 	private List<JRadioButton> issuesIncOpen   = new ArrayList<JRadioButton>();
 	private List<JRadioButton> issuesIncIP	   = new ArrayList<JRadioButton>();
+	private List<JRadioButton> issuesIncWknd   = new ArrayList<JRadioButton>();
 	
 	private HashMap<String, CustomFieldObject> cfos	= null;
+	private HashMap<String, List<IssueObject>> sprintIssues = new HashMap<String, List<IssueObject>>();
 	
 	private Connection connection = null;
 	private ConnectionPool cp = new ConnectionPool();
@@ -77,6 +84,8 @@ public class Main {
 	private JList boardList = null;
 	private JList sprintList = null;
 	private JList issuesList = null;
+	
+	private List<String> storage = new ArrayList<String>(); //String[] {"Story Points"};
 	
 	private String url  = "";
 	private String user = "";
@@ -121,13 +130,13 @@ public class Main {
 	private JRadioButton rdbtnYes;
 	private JRadioButton rdbtnNo;
 	private JPanel panel_3;
-	private JButton btnBack;
-	private JButton button;
+	private JButton btnBackToP1;
+	private JButton btnBackToP;
 	private JLabel lblSelectIssues;
 	private JButton btnGenerateReportFrom;
 	private JButton btnGenerateReportFrom_1;
 	private JLabel lblReportOptions;
-	private JCheckBox chckbxNewCheckBox;
+	private JCheckBox chckbxCreateExcel;
 	private JCheckBox chckbxCreatePowerpointppt;
 	private JComboBox comboBox;
 	private JScrollPane spIssueList;
@@ -140,8 +149,14 @@ public class Main {
 	private JPasswordField pfFldPass;
 	private JLabel lblSelectTimeTracker;
 	private JComboBox cmbTracker;
-	private JTextField textField;
+	private JTextField txtFldNewTracker;
 	private JButton btnAdd;
+	private JLabel lblIncludeWeekends;
+	private JRadioButton rdbtnYes_3;
+	private JRadioButton rdbtnNo_3;
+	private JLabel lblNumberOfDays;
+	private JTextField txtFldNumOfDays;
+	private JButton btnBackToP2;
 	
 	/**
 	 * Launch the application.
@@ -163,6 +178,7 @@ public class Main {
 	 * Create the application.
 	 */
 	public Main() {
+		storage.add("Story Points");
 		initialize();
 	}
 
@@ -170,21 +186,19 @@ public class Main {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		//fileLoad();
+		fileLoad();
 		
 		frmJirapresentation = new JFrame();
 		frmJirapresentation.getContentPane().setBackground(new Color(0, 153, 255));
 		frmJirapresentation.getContentPane().setLayout(null);
 		frmJirapresentation.setBackground(new Color(0, 153, 255));
+		frmJirapresentation.setResizable(false);
 		frmJirapresentation.setFont(new Font("SansSerif", Font.PLAIN, 16));
 		frmJirapresentation.setTitle("JIRA2Presentation");
 		frmJirapresentation.setMinimumSize(new Dimension(1200, 800));
 		frmJirapresentation.setPreferredSize(new Dimension(1200, 800));
 		frmJirapresentation.setBounds(100, 100, 1200, 800);
 		frmJirapresentation.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		panel_2 = new JPanel();
-		panel_2.setVisible(false);
 		
 		panel = new JPanel();
 		panel.setBackground(new Color(85, 141, 252));
@@ -244,7 +258,8 @@ public class Main {
 		btnGithub.setBounds(335, 380, 120, 25);
 		versionInfoPanel.add(btnGithub);
 		
-		btnDonate = new JButton("Donate");
+		btnDonate = new JButton("????");
+		btnDonate.setEnabled(false);
 		btnDonate.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		btnDonate.setBounds(485, 380, 120, 25);
 		versionInfoPanel.add(btnDonate);
@@ -402,7 +417,7 @@ public class Main {
 		pfFldPass.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		pfFldPass.setBounds(100, 320, 200, 25);
 		panel.add(pfFldPass);
-		btnConnect.setBounds(130, 380, 140, 25);
+		btnConnect.setBounds(130, 390, 140, 25);
 		panel.add(btnConnect);
 		
 		JButton btnClear = new JButton("Clear");
@@ -413,8 +428,11 @@ public class Main {
 				txtFldUser.setText("");
 			}
 		});
-		btnClear.setBounds(130, 460, 140, 25);
+		btnClear.setBounds(130, 450, 140, 25);
 		panel.add(btnClear);
+		
+		panel_2 = new JPanel();
+		panel_2.setVisible(false);
 		
 		panel_1 = new JPanel();
 		panel_1.setVisible(false);
@@ -433,7 +451,7 @@ public class Main {
 		btnGetSprints.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				sprints.clear();
+				//sprints.clear();
 				for(Object o : boardList.getSelectedValuesList()) {
 					for(BoardObject b : boards) {
 						if(b.getName().equals(o.toString())) {
@@ -536,10 +554,10 @@ public class Main {
 		panel_1.add(txtFldSearchBoards);
 		txtFldSearchBoards.setColumns(10);
 		
-		button = new JButton("Back");
-		button.setFont(new Font("SansSerif", Font.ITALIC, 16));
-		button.setBounds(70, 300, 160, 25);
-		panel_1.add(button);
+		btnBackToP = new JButton("Back");
+		btnBackToP.setFont(new Font("SansSerif", Font.ITALIC, 16));
+		btnBackToP.setBounds(70, 300, 160, 25);
+		panel_1.add(btnBackToP);
 		panel_2.setEnabled(false);
 		panel_2.setBackground(new Color(85, 141, 252));
 		panel_2.setBounds(0, 0, frmJirapresentation.getWidth(), frmJirapresentation.getHeight());
@@ -555,17 +573,24 @@ public class Main {
 		btnGetIssues.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				issues.clear();
 				for(Object o : sprintList.getSelectedValuesList()) {
 					for(SprintObject s : sprints) {
 						if(s.getName().equals(o.toString())) {
-							connection = new IssueConnection(url, user, pass);
+							if(cp.doesConnectionExist("Sprint " + s.getId())) {
+								connection = cp.getConnection("Sprint " + s.getId());
+							} else {
+								connection = new IssueConnection(url, user, pass);
+							}
 							String result = connection.connect(s.getBoardObject().getId(), s.getId());
 							if(result == ""){
 								issues.addAll(j2o.jsonToIssue(new StringReader(connection.getResult()), 
 										cfos.get(cmbTracker.getSelectedItem()).getIdAsString(), s));
+								sprintIssues.put(s.getName(), j2o.jsonToIssue(new StringReader(connection.getResult()), 
+										cfos.get(cmbTracker.getSelectedItem()).getIdAsString(), s));
 								connection.shutDown();
-								cp.addToPool("Sprint " + s.getId(), connection);
+								if(!cp.doesConnectionExist("Sprint " + s.getId())) {
+									cp.addToPool("Sprint " + s.getId(), connection);
+								}
 							} else {
 								JOptionPane.showMessageDialog(frmJirapresentation,
 									    result,
@@ -600,9 +625,16 @@ public class Main {
 						}
 					}
 				});
-				spIssueList = new JScrollPane(issuesList);
+				issuesList.validate();
+				issuesList.repaint();
+				spIssueList = new JScrollPane();
+				spIssueList.setViewportView(issuesList);
 				spIssueList.setBounds(380, 150, 500, 550);
+				spIssueList.validate();
+				spIssueList.repaint();
 				panel_3.add(spIssueList);
+				panel_3.validate();
+				panel_3.repaint();
 				panel_2.setEnabled(false);
 				panel_2.setVisible(false);
 				panel_3.setEnabled(true);
@@ -610,22 +642,22 @@ public class Main {
 			}
 		});
 		btnGetIssues.setFont(new Font("SansSerif", Font.ITALIC, 16));
-		btnGetIssues.setBounds(70, 150, 160, 25);
+		btnGetIssues.setBounds(100, 150, 160, 25);
 		panel_2.add(btnGetIssues);
 		
 		btnSelectAll2 = new JButton("Select All");
 		btnSelectAll2.setFont(new Font("SansSerif", Font.ITALIC, 16));
-		btnSelectAll2.setBounds(70, 200, 160, 25);
+		btnSelectAll2.setBounds(100, 200, 160, 25);
 		panel_2.add(btnSelectAll2);
 		
 		btnDeselectAll2 = new JButton("Deselect All");
 		btnDeselectAll2.setFont(new Font("SansSerif", Font.ITALIC, 16));
-		btnDeselectAll2.setBounds(70, 250, 160, 25);
+		btnDeselectAll2.setBounds(100, 250, 160, 25);
 		panel_2.add(btnDeselectAll2);
 		
 		lblSelectedSprints = new JLabel("Selected Sprints:");
 		lblSelectedSprints.setFont(new Font("SansSerif", Font.BOLD, 18));
-		lblSelectedSprints.setBounds(70, 480, 140, 20);
+		lblSelectedSprints.setBounds(70, 480, 170, 20);
 		panel_2.add(lblSelectedSprints);
 		
 		lblSprintList = new JLabel("N/A");
@@ -690,33 +722,43 @@ public class Main {
 		rdbtnNo.setBounds(975, 410, 127, 25);
 		panel_2.add(rdbtnNo);
 		
-		btnBack = new JButton("Back");
-		btnBack.setFont(new Font("SansSerif", Font.ITALIC, 16));
-		btnBack.setBounds(70, 300, 160, 25);
-		panel_2.add(btnBack);
+		btnBackToP1 = new JButton("Back");
+		btnBackToP1.setFont(new Font("SansSerif", Font.ITALIC, 16));
+		btnBackToP1.setBounds(100, 300, 160, 25);
+		panel_2.add(btnBackToP1);
 		
 		lblSelectTimeTracker = new JLabel("Select Time Tracker");
 		lblSelectTimeTracker.setHorizontalAlignment(SwingConstants.CENTER);
 		lblSelectTimeTracker.setFont(new Font("SansSerif", Font.PLAIN, 16));
-		lblSelectTimeTracker.setBounds(70, 352, 160, 16);
+		lblSelectTimeTracker.setBounds(100, 352, 160, 16);
 		panel_2.add(lblSelectTimeTracker);
 		
 		cmbTracker = new JComboBox();
 		cmbTracker.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		cmbTracker.setModel(new DefaultComboBoxModel(new String[] {"Story Points"}));
-		cmbTracker.setBounds(70, 382, 160, 22);
+		cmbTracker.setBounds(100, 382, 160, 22);
 		panel_2.add(cmbTracker);
 		
-		textField = new JTextField();
-		textField.setFont(new Font("SansSerif", Font.PLAIN, 14));
-		textField.setBounds(20, 420, 190, 25);
-		panel_2.add(textField);
-		textField.setColumns(10);
+		txtFldNewTracker = new JTextField();
+		txtFldNewTracker.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		txtFldNewTracker.setBounds(20, 420, 190, 25);
+		panel_2.add(txtFldNewTracker);
+		txtFldNewTracker.setColumns(10);
 		
 		btnAdd = new JButton("Add");
+		btnAdd.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				cmbTracker.addItem(txtFldNewTracker.getText());
+				txtFldNewTracker.setText("");
+			}
+		});
 		btnAdd.setFont(new Font("SansSerif", Font.ITALIC, 14));
 		btnAdd.setBounds(220, 420, 100, 25);
 		panel_2.add(btnAdd);
+		
+		sprintIncActive.add(rdbtnYes);
+		sprintIncActive.add(rdbtnNo);
 		
 		panel_3 = new JPanel();
 		panel_3.setVisible(false);
@@ -731,26 +773,53 @@ public class Main {
 		panel_3.add(lblSelectIssues);
 		
 		btnGenerateReportFrom = new JButton("Generate Report");
-		btnGenerateReportFrom.setFont(new Font("Tahoma", Font.ITALIC, 14));
-		btnGenerateReportFrom.setBounds(70, 150, 225, 25);
+		btnGenerateReportFrom.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(chckbxCreatePowerpointppt.isSelected()) {
+					int tempInt = 0;
+					if (rdbtnYes_3.isSelected() == false && !txtFldNumOfDays.getText().equals("")) {
+						tempInt = Integer.parseInt(txtFldNumOfDays.getText());
+					}
+					List2PPT l2p = new List2PPT(sprints, issues, tasks, priorities, rdbtnYes_3.isSelected(), tempInt);
+					l2p.loadFileLocation();
+					l2p.writeReport(comboBox.getSelectedIndex());
+					switch(comboBox.getSelectedIndex()) {
+					case 0:
+						l2p.outputSprintReport();
+						break;
+					case 1:
+						l2p.outputQuarterReport();
+					}
+				}
+				if(chckbxCreateExcel.isSelected()) {
+					List2Excel l2e = new List2Excel(issues, priorities, tasks);
+					l2e.loadFileLocation();
+					l2e.getStatistics();
+					l2e.populateSheet("Report");
+				}
+			}
+		});
+		btnGenerateReportFrom.setFont(new Font("SansSerif", Font.ITALIC, 14));
+		btnGenerateReportFrom.setBounds(50, 150, 260, 25);
 		panel_3.add(btnGenerateReportFrom);
 		
 		btnGenerateReportFrom_1 = new JButton("Generate Report From Selected");
-		btnGenerateReportFrom_1.setFont(new Font("Tahoma", Font.ITALIC, 14));
-		btnGenerateReportFrom_1.setBounds(70, 200, 230, 25);
+		btnGenerateReportFrom_1.setFont(new Font("SansSerif", Font.ITALIC, 14));
+		btnGenerateReportFrom_1.setBounds(50, 200, 260, 25);
 		panel_3.add(btnGenerateReportFrom_1);
 		
 		lblReportOptions = new JLabel("Report Options");
 		lblReportOptions.setFont(new Font("Tahoma", Font.BOLD, 16));
-		lblReportOptions.setBounds(70, 260, 125, 20);
+		lblReportOptions.setBounds(70, 335, 125, 20);
 		panel_3.add(lblReportOptions);
 		
-		chckbxNewCheckBox = new JCheckBox("Create Excel (.xls)");
-		chckbxNewCheckBox.setSelected(true);
-		chckbxNewCheckBox.setBackground(new Color(85, 141, 252));
-		chckbxNewCheckBox.setFont(new Font("SansSerif", Font.PLAIN, 12));
-		chckbxNewCheckBox.setBounds(70, 300, 130, 25);
-		panel_3.add(chckbxNewCheckBox);
+		chckbxCreateExcel = new JCheckBox("Create Excel (.xls)");
+		chckbxCreateExcel.setSelected(true);
+		chckbxCreateExcel.setBackground(new Color(85, 141, 252));
+		chckbxCreateExcel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+		chckbxCreateExcel.setBounds(70, 375, 130, 25);
+		panel_3.add(chckbxCreateExcel);
 		
 		chckbxCreatePowerpointppt = new JCheckBox("Create PowerPoint (.ppt)");
 		chckbxCreatePowerpointppt.addActionListener(new ActionListener() {
@@ -765,13 +834,13 @@ public class Main {
 		chckbxCreatePowerpointppt.setSelected(true);
 		chckbxCreatePowerpointppt.setFont(new Font("SansSerif", Font.PLAIN, 12));
 		chckbxCreatePowerpointppt.setBackground(new Color(85, 141, 252));
-		chckbxCreatePowerpointppt.setBounds(70, 340, 170, 25);
+		chckbxCreatePowerpointppt.setBounds(70, 415, 170, 25);
 		panel_3.add(chckbxCreatePowerpointppt);
 		
 		comboBox = new JComboBox();
 		comboBox.setModel(new DefaultComboBoxModel(new String[] {"Sprint Report", "Quarter Report (Short)"}));
 		comboBox.setFont(new Font("SansSerif", Font.PLAIN, 12));
-		comboBox.setBounds(70, 374, 170, 22);
+		comboBox.setBounds(70, 449, 170, 22);
 		panel_3.add(comboBox);
 		
 		lblIncludeOpen = new JLabel("Include Open?");
@@ -812,7 +881,7 @@ public class Main {
 		lblIncludeInprogress = new JLabel("Include In-Progress?");
 		lblIncludeInprogress.setHorizontalAlignment(SwingConstants.CENTER);
 		lblIncludeInprogress.setFont(new Font("SansSerif", Font.BOLD, 16));
-		lblIncludeInprogress.setBounds(960, 260, 160, 20);
+		lblIncludeInprogress.setBounds(960, 260, 170, 20);
 		panel_3.add(lblIncludeInprogress);
 		
 		rdbtnYes_2 = new JRadioButton("Yes");
@@ -844,22 +913,101 @@ public class Main {
 		rdbtnNo_2.setBounds(960, 319, 127, 25);
 		panel_3.add(rdbtnNo_2);
 		
-		sprintIncActive.add(rdbtnYes);
-		sprintIncActive.add(rdbtnNo);
+		lblIncludeWeekends = new JLabel("Include Weekends?");
+		lblIncludeWeekends.setHorizontalAlignment(SwingConstants.CENTER);
+		lblIncludeWeekends.setFont(new Font("SansSerif", Font.BOLD, 16));
+		lblIncludeWeekends.setBounds(960, 365, 160, 16);
+		panel_3.add(lblIncludeWeekends);
+		
+		rdbtnYes_3 = new JRadioButton("Yes");
+		rdbtnYes_3.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : issuesIncWknd) {
+					if(rbd.getText() != rdbtnYes_3.getText()) rbd.setSelected(false);
+				}
+			}
+		});
+		rdbtnYes_3.setBackground(new Color(85, 141, 252));
+		rdbtnYes_3.setBounds(960, 390, 127, 25);
+		panel_3.add(rdbtnYes_3);
+		
+		rdbtnNo_3 = new JRadioButton("No");
+		rdbtnNo_3.setBackground(new Color(85, 141, 252));
+		rdbtnNo_3.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(JRadioButton rbd : issuesIncWknd) {
+					if(rbd.getText() != rdbtnNo_3.getText()) rbd.setSelected(false);
+				}
+			}
+		});
+		rdbtnNo_3.setSelected(true);
+		rdbtnNo_3.setBounds(960, 420, 127, 25);
+		panel_3.add(rdbtnNo_3);
+		
+		lblNumberOfDays = new JLabel("Number of Days:");
+		lblNumberOfDays.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNumberOfDays.setFont(new Font("SansSerif", Font.ITALIC, 14));
+		lblNumberOfDays.setBounds(960, 455, 140, 16);
+		panel_3.add(lblNumberOfDays);
+		
+		txtFldNumOfDays = new JTextField();
+		txtFldNumOfDays.setFont(new Font("SansSerif", Font.PLAIN, 14));
+		txtFldNumOfDays.setBounds(960, 480, 140, 25);
+		panel_3.add(txtFldNumOfDays);
+		txtFldNumOfDays.setColumns(10);
 		issuesIncOpen.add(rdbtnYes_1);
 		issuesIncOpen.add(rdbtnNo_1);
 		issuesIncIP.add(rdbtnYes_2);
 		issuesIncIP.add(rdbtnNo_2);
+		issuesIncWknd.add(rdbtnYes_3);
+		issuesIncWknd.add(rdbtnNo_3);
+		
+		btnBackToP2 = new JButton("Back");
+		btnBackToP2.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				panel_3.setEnabled(false);
+				panel_3.setVisible(false);
+				panel_2.setEnabled(true);
+				panel_2.setVisible(true);
+				issues.clear();
+			}
+		});
+		btnBackToP2.setFont(new Font("SansSerif", Font.ITALIC, 14));
+		btnBackToP2.setBounds(50, 250, 260, 25);
+		panel_3.add(btnBackToP2);
 	}
 
 	private void fileLoad() {
-		Properties properties = new Properties();
-		URL resource = getClass().getResource("/resc/version.txt");
-	    try {
-			properties.load(new FileReader(new File(resource.getFile())));
+		
+		Properties props = new Properties();
+		try {
+			props.load(ClassLoader.getSystemResourceAsStream ("version.properties"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	    System.out.println("Version: " + properties.get("majorversion"));
+		
+		majVer = Integer.parseInt(props.getProperty("majver"));
+		minVer = Integer.parseInt(props.getProperty("minver"));
+		buildNum = Integer.parseInt(props.getProperty("build"));
+		
+		if(devBuild) {
+			buildNum++;
+			
+			props.setProperty("build", buildNum+"");
+			
+			File userHome = new File("resc/");
+			File propertiesFile = new File(userHome, "version.properties");
+	
+			try {
+				props.store(new FileOutputStream(propertiesFile), "Version Information");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

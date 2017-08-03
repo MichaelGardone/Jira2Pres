@@ -23,7 +23,7 @@ public class List2PPT {
 	File pptDirectory = null;
 	XMLSlideShow ss = new XMLSlideShow();
 	
-	private List<SprintObject> so = null;
+	private List<SprintObject> listSO = null;
 	private List<IssueObject> issues = null;
 	private List<TaskObject> tasks = null;
 	private List<PriorityObject> priorities = null;
@@ -33,7 +33,7 @@ public class List2PPT {
 	
 	public List2PPT(List<SprintObject> so, List<IssueObject> issues, List<TaskObject> tasks, List<PriorityObject> priorities,
 			boolean incldeWknds, int numOfDays) {
-		this.so = so;
+		this.listSO = so;
 		this.issues = issues;
 		this.tasks = tasks;
 		this.priorities = priorities;
@@ -67,17 +67,14 @@ public class List2PPT {
 	}
 	
 	public void writeReport(int reportStyle) {
-		for(SprintObject sprint : so) {
-			if(reportStyle == 0) {
-				report = new SprintReport(issues, tasks, priorities);
-				report.writeReport(ss, sprint);
-				outputSprintReport();
-			} else if (reportStyle == 1) {
-				report = new QuarterlyReport(so, issues, tasks, priorities, incldeWknds, numOfDays);
-				report.writeReport(ss, sprint);
-				outputQuarterReport();
-			}
+		if(reportStyle == 0) {
+			report = new SprintReport(issues, tasks, priorities);
+		} else if (reportStyle == 1) {
+			report = new QuarterlyReport(listSO, issues, tasks, priorities, incldeWknds, numOfDays);
 		}
+		
+		report.writeReport(ss);
+		outputQuarterReport();
 	}
 	
 	public void outputQuarterReport() {

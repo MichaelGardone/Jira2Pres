@@ -23,18 +23,25 @@ import j2p.J2P1.objects.TaskObject;
 public class QuarterlyReport extends Report {
 	
 	private QuarterBasedData qbd;
+	private List<SprintObject> sprints;
 	
 	public QuarterlyReport(List<SprintObject> sprints, List<IssueObject> issues, List<TaskObject> tasks, List<PriorityObject> priorities,
 			boolean incldWknd, int numDays) {
 		super(issues, tasks, priorities);
 		qbd = new QuarterBasedData(issues, gd.priorities.length);
+		qbd.preCheck();
 		qbd.calculateSprintLengths(sprints, incldWknd, numDays);
+		qbd.parseData();
+		this.sprints = sprints;
 	}
 
 	@Override
 	public void writeReport(XMLSlideShow ss, SprintObject so) {
-		qbd.parseData();
-		
+		// TODO: Replace SprintReport's writeReport (XMLSlideShow, SprintObject) with the new writeReport(XMLSlideShow ss)
+	}
+
+	@Override
+	public void writeReport(XMLSlideShow ss) {
 		for(int x=0;x<qbd.getNumOfSprints(); x++) {
 			XSLFSlide slide = ss.createSlide();
 				
@@ -52,7 +59,7 @@ public class QuarterlyReport extends Report {
 		        p.setTextAlign(TextAlign.CENTER);
 		        XSLFTextRun r = p.addNewTextRun();
 		        if(i==0) {
-		         	r.setText(so.getBoardObject().getName());
+		         	r.setText(sprints.get(x).getBoardObject().getName());
 		        } else if(i==1) {
 		           	r.setText("Committed");
 		        } else if(i==2) {
@@ -132,7 +139,7 @@ public class QuarterlyReport extends Report {
 		        p.setTextAlign(TextAlign.CENTER);
 		        XSLFTextRun r = p.addNewTextRun();
 		        if(i==0) {
-		         	r.setText(so.getBoardObject().getName());
+		         	r.setText(sprints.get(x).getBoardObject().getName());
 		        } else if(i==1) {
 		           	r.setText("Total Tickets");
 		        } else if(i==2) {
@@ -181,9 +188,9 @@ public class QuarterlyReport extends Report {
 		        			r.setText("December");
 		        		}
 		        	} else if(i==1) {
-		        		r.setText(qbd.totalTickets()[rownum]+"");
+		        		r.setText(qbd.totalTickets()[x][rownum]+"");
 		        	} else {
-		        		r.setText((double)(qbd.totalTickets()[rownum])/(double)(qbd.getNumOfDays()[rownum])+"");
+		        		r.setText((double)(qbd.totalTickets()[x][rownum])/(double)(qbd.getNumOfDays()[x][rownum])+"");
 		        	}
 		        	
 		        	if(rownum % 2 == 0)
@@ -235,9 +242,9 @@ public class QuarterlyReport extends Report {
 		        		}
 		        	} else {
 		        		if(rownum==0) {
-		        			r.setText(qbd.getOpenTickets()[i-1]+"");
+		        			r.setText(qbd.getOpenTickets()[x][i-1]+"");
 		        		} else {
-		        			r.setText(qbd.getClosedTickets()[i-1]+"");
+		        			r.setText(qbd.getClosedTickets()[x][i-1]+"");
 		        		}
 		        	}
 		        	

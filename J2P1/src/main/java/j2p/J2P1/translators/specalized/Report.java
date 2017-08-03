@@ -23,6 +23,7 @@ public abstract class Report {
 		gd.parseIssues(issues);
 	}
 	
+	public abstract void writeReport(XMLSlideShow ss);
 	public abstract void writeReport(XMLSlideShow ss, SprintObject so);
 	
 }
